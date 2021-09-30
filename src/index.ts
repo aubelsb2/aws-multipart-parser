@@ -1,4 +1,3 @@
-import { APIGatewayProxyEvent } from 'aws-lambda';
 import { MultipartFormData } from './models';
 
 function getValueIgnoringKeyCase(object: Object, key: string) {
@@ -8,18 +7,25 @@ function getValueIgnoringKeyCase(object: Object, key: string) {
     return object[foundKey];
 }
 
-function getBoundary(event: APIGatewayProxyEvent): string {
+function getBoundary(event: GenericProxyEvent): string {
     return getValueIgnoringKeyCase(event.headers, 'Content-Type').split('=')[1];
 }
 
-function getBody(event: APIGatewayProxyEvent): string {
+function getBody(event: GenericProxyEvent): string {
     if (event.isBase64Encoded) {
-        return Buffer.from(event.body, 'base64').toString('binary');
+        return Buffer.from(event.body || "", 'base64').toString('binary');
     }
-    return event.body;
+    return event.body || "";
 }
 
-export let parse = (event: APIGatewayProxyEvent, spotText: boolean): MultipartFormData =>  {
+// Should reduce to either: APIGatewayProxyEvent or APIGatewayProxyEventV2
+export interface GenericProxyEvent {
+    body?: string | null;
+    isBase64Encoded: boolean;
+    headers: APIGatewayProxyEventHeaders;
+}
+
+export let parse = (event: GenericProxyEvent, spotText: boolean): MultipartFormData =>  {
     const boundary = getBoundary(event);
     const result : MultipartFormData = {};
     getBody(event)
